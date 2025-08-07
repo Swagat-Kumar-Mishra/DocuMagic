@@ -1,11 +1,15 @@
 {
   "name": "My Test PWA",
   "short_name": "TestPWA",
+  "scope": ".",
   "start_url": ".",
+  "id": "/my-pwa-test/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
   "description": "A simple test PWA.",
+  "orientation": "portrait",
+  "lang": "en-US",
   "icons": [
     {
       "src": "https://i.imgur.com/rS2nKZU.png",
