@@ -3,48 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Test PWA</title>
+    <title>DocuMagic - The All-in-One Document Tool</title>
+    
+    <!-- Google Fonts for a stylish look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- =============================================================== -->
+    <!-- == PWA & FIREBASE CODE STARTS HERE == -->
+    <!-- =============================================================== -->
+    
+    <!-- 1. Manifest and Themeing -->
     <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8e44ad">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <!-- 2. Firebase SDKs and Configuration -->
+    <script type="module">
+      // Import the functions we need from the Firebase SDKs
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+      import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging.js";
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "",
+        authDomain: "",
+        projectId: "",
+        storageBucket: "",
+        messagingSenderId: "",
+        appId: "",
+        measurementId: ""
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const messaging = getMessaging(app);
+
+      // This function will be called by your button
+      window.requestNotificationPermission = function() {
+        console.log('Requesting permission...');
+        Notification.requestPermission().then((permission) => {
+          if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            getToken(messaging, { vapidKey: '' }).then((currentToken) => {
+              if (currentToken) {
+                console.log('FCM Token:', currentToken);
+                alert('Successfully subscribed to notifications! Your token is: ' + currentToken);
+              } else {
+                alert('Could not get notification token. Please allow notifications for this site.');
+              }
+            }).catch((err) => {
+              console.log('An error occurred while retrieving token. ', err);
+              alert('An error occurred while getting the token. See console for details.');
+            });
+          } else {
+            console.log('Unable to get permission to notify.');
+            alert('Permission for notifications was denied.');
+          }
+        });
+      }
+    </script>
+
+    <!-- 3. Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js') // Added ./ for clarity
+          .then(reg => console.log('Service Worker Registered', reg))
+          .catch(err => console.log('SW registration failed: ', err));
+      });
+    }
+    </script>
+    
+    <!-- =============================================================== -->
+    <!-- == PWA & FIREBASE CODE ENDS HERE == -->
+    <!-- =============================================================== -->
+
+    <!-- Your App's CSS -->
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f0f0f0; }
-        button { padding: 15px 25px; font-size: 18px; cursor: pointer; border: none; background-color: #007bff; color: white; border-radius: 5px; }
+        :root {
+            --primary-color: #8e44ad;
+            --secondary-color: #9b59b6;
+            --background-color: #2c3e50;
+            --surface-color: #34495e;
+            --text-color: #ecf0f1;
+            --light-gray: #bdc3c7;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --font-family: 'Poppins', sans-serif;
+        }
+        body { font-family: var(--font-family); background-color: var(--background-color); color: var(--text-color); display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 800px; background-color: var(--surface-color); border-radius: 20px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); padding: 25px 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 2.2em; text-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header p { margin-top: 5px; color: rgba(255, 255, 255, 0.8); }
+        .tabs { display: flex; background-color: rgba(0,0,0,0.2); }
+        .tab-button { flex: 1; padding: 18px 20px; cursor: pointer; background-color: transparent; border: none; color: var(--light-gray); font-size: 1em; font-weight: 600; transition: all 0.3s ease; position: relative; }
+        .tab-button.active { color: white; }
+        .tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 10%; right: 10%; height: 4px; background-color: var(--success-color); border-radius: 2px; }
+        .tab-content { display: none; padding: 30px; }
+        .tab-content.active { display: block; }
+        .drop-zone { border: 3px dashed var(--light-gray); border-radius: 15px; padding: 50px; text-align: center; cursor: pointer; transition: all 0.3s ease; }
+        .drop-zone.dragover { border-color: var(--success-color); }
+        .file-input { display: none; }
+        .btn { background: linear-gradient(135deg, var(--success-color), #27ae60); color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; transition: all 0.3s ease; }
+        .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+        /* Add other styles from your file here to keep it clean */
     </style>
 </head>
 <body>
-
-    <h1>Welcome to My PWA!</h1>
-    <p>This is a test app created on a phone. 📱</p>
-    <button id="notifyButton">Show Me a Notification!</button>
-
+    <div class="container">
+        <header class="header">
+            <h1>DocuMagic ✨</h1>
+            <p>Your One-Stop Solution for Document Conversion</p>
+            <button onclick="requestNotificationPermission()" class="btn" style="margin-top: 15px; background: #3498db; border: none;">Enable Notifications</button>
+        </header>
+        <!-- The rest of your HTML body (tabs, main, etc.) goes here -->
+    </div>
+    <!-- External libraries (pdf.js, jspdf) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <!-- Your main application JavaScript -->
     <script>
-        // Register the Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').then(function(registration) {
-                console.log('Service Worker registered with scope:', registration.scope);
-            }).catch(function(error) {
-                console.log('Service Worker registration failed:', error);
-            });
-        }
-
-        // Handle the button click
-        document.getElementById('notifyButton').addEventListener('click', () => {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    showLocalNotification('Hello!', 'This is your first push notification! 💔->❤️', navigator.serviceWorker.ready);
-                }
-            });
-        });
-
-        function showLocalNotification(title, body, swRegistration) {
-            const options = {
-                body: body,
-                icon: 'https://i.imgur.com/rS2nKZU.png' // A simple icon for the notification
-            };
-            swRegistration.then(reg => {
-                reg.showNotification(title, options);
-            });
-        }
+      // The DOMContentLoaded script from your file goes here
     </script>
-
 </body>
 </html>
