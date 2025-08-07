@@ -9,7 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
+
+    <!-- =============================================================== -->
+    <!-- == PWA & FIREBASE CODE STARTS HERE == -->
+    <!-- =============================================================== -->
+
     <!-- PWA Manifest & Theming -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#8e44ad">
@@ -23,8 +27,7 @@
 
       // Your web app's Firebase configuration
       const firebaseConfig = {
-        // PASTE YOUR FIREBASE CONFIGURATION HERE
-        // I have removed your keys for security.
+        // PASTE YOUR FIREBASE CONFIGURATION HERE AGAIN
         apiKey: "YOUR_API_KEY_HERE",
         authDomain: "YOUR_AUTH_DOMAIN_HERE",
         projectId: "YOUR_PROJECT_ID_HERE",
@@ -43,14 +46,13 @@
         Notification.requestPermission().then((permission) => {
           if (permission === 'granted') {
             console.log('Notification permission granted.');
-            // Get the token
             const vapidKey = "YOUR_VAPID_KEY_HERE"; // PASTE YOUR VAPID KEY HERE
             getToken(messaging, { vapidKey: vapidKey }).then((currentToken) => {
               if (currentToken) {
                 console.log('FCM Token:', currentToken);
                 alert('Successfully subscribed! Your token is: ' + currentToken);
               } else {
-                alert('Could not get notification token. Please allow notifications.');
+                alert('Could not get notification token. Please allow notifications for this site.');
               }
             }).catch((err) => {
               console.error('An error occurred while retrieving token. ', err);
@@ -64,7 +66,6 @@
       }
 
       // This is the reliable way to make the button work on all devices.
-      // It waits for the page to be fully loaded before attaching the click function.
       window.addEventListener('DOMContentLoaded', () => {
           const notificationButton = document.getElementById('notification-btn');
           if (notificationButton) {
@@ -77,8 +78,6 @@
     <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // The '/' is important! It ensures the service worker is registered
-        // from the root of your website, which is required.
         navigator.serviceWorker.register('/service-worker.js')
           .then(reg => console.log('Service Worker Registered:', reg))
           .catch(err => console.error('Service Worker registration failed:', err));
@@ -86,11 +85,325 @@
     }
     </script>
 
-    <!-- Your App's CSS -->
+    <!-- =============================================================== -->
+    <!-- == PWA & FIREBASE CODE ENDS HERE == -->
+    <!-- =============================================================== -->
+
+    <!-- All CSS is embedded here -->
     <style>
-        /* Your full CSS code from your file goes here. No changes needed. */
-        :root { --primary-color: #8e44ad; /* ...and so on */ }
-        body { font-family: 'Poppins', sans-serif; /* ... */ }
+        :root {
+            --primary-color: #8e44ad;
+            --secondary-color: #9b59b6;
+            --background-color: #2c3e50;
+            --surface-color: #34495e;
+            --text-color: #ecf0f1;
+            --light-gray: #bdc3c7;
+            --success-color: #2ecc71;
+            --error-color: #e74c3c;
+            --font-family: 'Poppins', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #2c3e50, #1a2531);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--surface-color);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 25px 30px;
+            text-align: center;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.2em;
+            font-weight: 700;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            margin-top: 5px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: rgba(0,0,0,0.2);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 18px 20px;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            color: var(--light-gray);
+            font-size: 1em;
+            font-weight: 600;
+            font-family: var(--font-family);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .tab-button.active {
+            color: white;
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 4px;
+            background-color: var(--success-color);
+            border-radius: 2px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { width: 0; left: 50%; }
+            to { width: 80%; left: 10%; }
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: contentFadeIn 0.5s ease;
+        }
+
+        @keyframes contentFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .drop-zone {
+            border: 3px dashed var(--light-gray);
+            border-radius: 15px;
+            padding: 50px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--success-color);
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+
+        .drop-zone-text {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--light-gray);
+        }
+        
+        .drop-zone-subtext {
+            font-size: 0.9em;
+            color: #95a5a6;
+            margin-top: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--success-color), #27ae60);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            font-family: var(--font-family);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: inline-block;
+            width: fit-content;
+            margin: 0;
+        }
+        
+        .btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+        
+        .btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(46, 204, 113, 0.4);
+        }
+        
+        .progress-area {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+            border-radius: 5px;
+            transition: width 0.3s ease;
+        }
+        
+        #status-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .results-area {
+            margin-top: 20px;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .result-item {
+            position: relative;
+            background-color: var(--background-color);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            animation: scaleUp 0.5s ease;
+        }
+        
+        .result-item:hover {
+            transform: scale(1.05);
+        }
+
+        @keyframes scaleUp {
+            from { transform: scale(0.8); opacity: 0;}
+            to { transform: scale(1); opacity: 1;}
+        }
+
+        .result-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .result-item .download-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            flex-direction: column;
+            text-align: center;
+            padding: 10px;
+        }
+        
+        .result-item:hover .download-overlay {
+            opacity: 1;
+        }
+        
+        .download-overlay .download-link {
+            color: var(--success-color);
+            font-weight: 700;
+            text-decoration: none;
+            margin-top: 5px;
+            font-size: 1.2em;
+        }
+        
+        .download-overlay .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .placeholder-text {
+            color: var(--light-gray);
+            text-align: center;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .result-item .selection-controls {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 5px;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-item .select-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        #p2i-action-area {
+            text-align: center; 
+            margin: 25px 0 0 0;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -100,8 +413,356 @@
             <h1>DocuMagic ✨</h1>
             <p>Your One-Stop Solution for Document Conversion</p>
             
-            <!-- This button now has an ID and no "onclick" attribute -->
-            <button id="notification-btn" class="btn" style="margin-top: 15px; background: #3498db; border: none;">Enable Notifications</button>
+            <!-- This button has the required ID for our script to find it -->
+            <button id="notification-btn" class="btn" style="margin-top: 15px; background: #3498db;">Enable Notifications</button>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="pdf-to-image">PDF to Image</button>
+            <button class="tab-button" data-tab="image-to-pdf">Image to PDF</button>
+            <button class="tab-button" data-tab="merge-pdf">Merge PDF (Soon)</button>
+        </nav>
+
+        <main>
+            <!-- PDF to Image Tab -->
+            <div id="pdf-to-image" class="tab-content active">
+                <div class="drop-zone" id="p2i-drop-zone">
+                    <p class="drop-zone-text">📂 Drag & Drop PDF Here</p>
+                    <p class="drop-zone-subtext">or click to select file</p>
+                    <input type="file" id="p2i-file-input" class="file-input" accept=".pdf">
+                </div>
+                <div class="progress-area" id="p2i-progress-area">
+                    <p id="p2i-status-text">Processing...</p>
+                    <div class="progress-bar"><div class="progress" id="p2i-progress"></div></div>
+                </div>
+                <div id="p2i-action-area"></div>
+                <div class="results-area" id="p2i-results-area"></div>
+            </div>
+
+            <!-- Image to PDF Tab -->
+            <div id="image-to-pdf" class="tab-content">
+                <div class="drop-zone" id="i2p-drop-zone">
+                    <p class="drop-zone-text">🖼️ Drag & Drop Images Here</p>
+                    <p class="drop-zone-subtext">or click to select files (JPG, PNG)</p>
+                    <input type="file" id="i2p-file-input" class="file-input" accept="image/jpeg, image/png" multiple>
+                </div>
+                <button id="i2p-convert-btn" class="btn" disabled style="margin: 20px auto 0 auto; display: block;">Convert to PDF</button>
+                <div class="progress-area" id="i2p-progress-area">
+                    <p id="i2p-status-text">Processing...</p>
+                    <div class="progress-bar"><div class="progress" id="i2p-progress"></div></div>
+                </div>
+                <div class="results-area" id="i2p-results-area">
+                    <p id="i2p-file-list-title" style="display: none; font-weight: 600; margin-bottom: 15px;">Files to be converted:</p>
+                    <div class="results-grid" id="i2p-preview-grid"></div>
+                </div>
+            </div>
+            
+            <!-- Merge PDF (Placeholder) Tab -->
+            <div id="merge-pdf" class="tab-content">
+                <p class="placeholder-text">This feature is coming soon! Stay tuned for updates.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- External libraries included via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+
+    <!-- All of your application's JavaScript logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- General UI Logic: Tab Switching ---
+            const tabs = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = document.querySelector(`#${tab.dataset.tab}`);
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    target.classList.add('active');
+                });
+            });
+
+
+            // --- Feature 1: PDF to Image ---
+            const p2iDropZone = document.getElementById('p2i-drop-zone');
+            const p2iFileInput = document.getElementById('p2i-file-input');
+            const p2iProgressArea = document.getElementById('p2i-progress-area');
+            const p2iProgress = document.getElementById('p2i-progress');
+            const p2iStatusText = document.getElementById('p2i-status-text');
+            const p2iResultsArea = document.getElementById('p2i-results-area');
+            const p2iActionArea = document.getElementById('p2i-action-area');
+
+            p2iDropZone.addEventListener('click', () => p2iFileInput.click());
+            p2iFileInput.addEventListener('change', (e) => handleP2iFiles(e.target.files));
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                p2iDropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            ['dragenter', 'dragover'].forEach(eventName => {
+                p2iDropZone.addEventListener(eventName, () => p2iDropZone.classList.add('dragover'), false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                p2iDropZone.addEventListener(eventName, () => p2iDropZone.classList.remove('dragover'), false);
+            });
+            p2iDropZone.addEventListener('drop', (e) => handleP2iFiles(e.dataTransfer.files), false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            async function handleP2iFiles(files) {
+                if (files.length === 0) return;
+                const file = files[0];
+                if (file.type !== 'application/pdf') {
+                    alert('Please select a PDF file.');
+                    return;
+                }
+                
+                p2iResultsArea.innerHTML = '<div class="results-grid"></div>';
+                p2iActionArea.innerHTML = '';
+                p2iActionArea.style.display = 'none';
+                p2iProgressArea.style.display = 'block';
+                p2iStatusText.textContent = 'Loading PDF...';
+                p2iProgress.style.width = '0%';
+                
+                const fileReader = new FileReader();
+                fileReader.readAsArrayBuffer(file);
+                fileReader.onload = async (e) => {
+                    const pdfData = new Uint8Array(e.target.result);
+                    const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    
+                    const numPages = pdfDoc.numPages;
+                    p2iStatusText.textContent = `Converting ${numPages} pages...`;
+
+                    const resultsGrid = p2iResultsArea.querySelector('.results-grid');
+
+                    for (let i = 1; i <= numPages; i++) {
+                        const page = await pdfDoc.getPage(i);
+                        const viewport = page.getViewport({ scale: 2.0 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                        const imgDataUrl = canvas.toDataURL('image/png');
+                        
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'result-item';
+                        resultItem.innerHTML = `
+                            <img src="${imgDataUrl}" alt="Page ${i}">
+                            <div class="download-overlay">
+                                <span>Page ${i}</span>
+                                <a href="${imgDataUrl}" download="page_${i}.png" class="download-link">Download</a>
+                            </div>
+                            <div class="selection-controls">
+                                <input type="checkbox" class="select-checkbox p2i-select-item">
+                            </div>
+                        `;
+                        resultsGrid.appendChild(resultItem);
+                        
+                        const progressPercentage = (i / numPages) * 100;
+                        p2iProgress.style.width = `${progressPercentage}%`;
+                        p2iStatusText.textContent = `Converted page ${i} of ${numPages}`;
+                    }
+                    
+                    p2iStatusText.textContent = 'Conversion Complete!';
+
+                    if (numPages > 0) {
+                        p2iActionArea.style.display = 'block';
+                        p2iActionArea.innerHTML = `
+                            <button id="p2i-download-selected-btn" class="btn" disabled>Download Selected</button>
+                            <label style="margin-left: 20px; cursor: pointer; vertical-align: middle;">
+                                <input type="checkbox" id="p2i-select-all-checkbox" style="vertical-align: middle; margin-right: 5px;"> Select All
+                            </label>
+                        `;
+                        document.getElementById('p2i-download-selected-btn').addEventListener('click', downloadSelectedP2i);
+                        document.getElementById('p2i-select-all-checkbox').addEventListener('change', toggleSelectAllP2i);
+                    }
+                };
+            }
+
+            p2iResultsArea.addEventListener('change', e => {
+                if (e.target.classList.contains('p2i-select-item')) {
+                    updateP2iDownloadButtonState();
+                }
+            });
+
+            function updateP2iDownloadButtonState() {
+                const downloadBtn = document.getElementById('p2i-download-selected-btn');
+                const selectAllCheckbox = document.getElementById('p2i-select-all-checkbox');
+                if (!downloadBtn || !selectAllCheckbox) return;
+
+                const allCheckboxes = p2iResultsArea.querySelectorAll('.p2i-select-item');
+                const checkedCheckboxes = p2iResultsArea.querySelectorAll('.p2i-select-item:checked');
+
+                downloadBtn.disabled = checkedCheckboxes.length === 0;
+                selectAllCheckbox.checked = allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length;
+            }
+
+            function toggleSelectAllP2i(e) {
+                const isChecked = e.target.checked;
+                const checkboxes = p2iResultsArea.querySelectorAll('.p2i-select-item');
+                checkboxes.forEach(cb => cb.checked = isChecked);
+                updateP2iDownloadButtonState();
+            }
+
+            function downloadSelectedP2i() {
+                const checkedItems = p2iResultsArea.querySelectorAll('.p2i-select-item:checked');
+                checkedItems.forEach((checkbox, index) => {
+                    const resultItem = checkbox.closest('.result-item');
+                    if (resultItem) {
+                        const downloadLink = resultItem.querySelector('.download-link');
+                        if (downloadLink) {
+                            const tempLink = document.createElement('a');
+                            tempLink.href = downloadLink.href;
+                            tempLink.download = downloadLink.download;
+                            
+                            setTimeout(() => {
+                                document.body.appendChild(tempLink);
+                                tempLink.click();
+                                document.body.removeChild(tempLink);
+                            }, index * 250);
+                        }
+                    }
+                });
+            }
+
+            // --- Feature 2: Image to PDF ---
+            const i2pDropZone = document.getElementById('i2p-drop-zone');
+            const i2pFileInput = document.getElementById('i2p-file-input');
+            const i2pConvertBtn = document.getElementById('i2p-convert-btn');
+            const i2pProgressArea = document.getElementById('i2p-progress-area');
+            const i2pProgress = document.getElementById('i2p-progress');
+            const i2pStatusText = document.getElementById('i2p-status-text');
+            const i2pPreviewGrid = document.getElementById('i2p-preview-grid');
+            const i2pFileLisTitle = document.getElementById('i2p-file-list-title');
+            
+            let i2pFiles = [];
+
+            i2pDropZone.addEventListener('click', () => i2pFileInput.click());
+            i2pFileInput.addEventListener('change', (e) => handleI2pFiles(e.target.files));
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                i2pDropZone.addEventListener(eventName, preventDefaults, false);
+            });
+            ['dragenter', 'dragover'].forEach(eventName => {
+                i2pDropZone.addEventListener(eventName, () => i2pDropZone.classList.add('dragover'), false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                i2pDropZone.addEventListener(eventName, () => i2pDropZone.classList.remove('dragover'), false);
+            });
+            i2pDropZone.addEventListener('drop', (e) => handleI2pFiles(e.dataTransfer.files), false);
+            
+            function handleI2pFiles(files) {
+                i2pFiles = [...i2pFiles, ...Array.from(files).filter(file => file.type.startsWith('image/'))];
+                updateI2pPreview();
+            }
+            
+            function updateI2pPreview() {
+                i2pPreviewGrid.innerHTML = '';
+                if (i2pFiles.length > 0) {
+                    i2pFileLisTitle.style.display = 'block';
+                    i2pConvertBtn.disabled = false;
+                    i2pFiles.forEach((file) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const resultItem = document.createElement('div');
+                            resultItem.className = 'result-item';
+                            resultItem.innerHTML = `<img src="${e.target.result}" alt="Preview ${file.name}">`;
+                            i2pPreviewGrid.appendChild(resultItem);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                } else {
+                    i2pFileLisTitle.style.display = 'none';
+                    i2pConvertBtn.disabled = true;
+                }
+            }
+            
+            i2pConvertBtn.addEventListener('click', async () => {
+                if (i2pFiles.length === 0) return;
+                
+                i2pProgressArea.style.display = 'block';
+                i2pStatusText.textContent = 'Initializing PDF creation...';
+                i2pProgress.style.width = '0%';
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                for (let i = 0; i < i2pFiles.length; i++) {
+                    const file = i2pFiles[i];
+                    i2pStatusText.textContent = `Processing image ${i + 1} of ${i2pFiles.length}...`;
+                    
+                    const imgData = await new Promise(resolve => {
+                        const reader = new FileReader();
+                        reader.onload = e => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                    
+                    const img = new Image();
+                    await new Promise(resolve => {
+                        img.onload = resolve;
+                        img.src = imgData;
+                    });
+                    
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const pdfHeight = doc.internal.pageSize.getHeight();
+                    const imgWidth = img.width;
+                    const imgHeight = img.height;
+                    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                    
+                    const finalWidth = imgWidth * ratio;
+                    const finalHeight = imgHeight * ratio;
+
+                    const x = (pdfWidth - finalWidth) / 2;
+                    const y = (pdfHeight - finalHeight) / 2;
+
+                    if (i > 0) {
+                        doc.addPage();
+                    }
+                    
+                    doc.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+                    
+                    const progressPercentage = ((i + 1) / i2pFiles.length) * 100;
+                    i2pProgress.style.width = `${progressPercentage}%`;
+                }
+                
+                i2pStatusText.textContent = 'Finalizing PDF...';
+                
+                const fileName = prompt("Please enter a name for your PDF file:", "converted-images.pdf");
+
+                if (fileName && fileName.trim() !== "") {
+                    let finalFileName = fileName.trim();
+                    if (!finalFileName.toLowerCase().endsWith('.pdf')) {
+                        finalFileName += '.pdf';
+                    }
+                    doc.save(finalFileName);
+                    i2pStatusText.textContent = 'PDF created successfully!';
+                } else {
+                    i2pStatusText.textContent = 'Save cancelled.';
+                }
+                
+                setTimeout(() => {
+                    i2pFiles = [];
+                    updateI2pPreview();
+                    i2pProgressArea.style.display = 'none';
+                }, 3000);
+            });
+        });
+    </script>
+</body>
+</html>            <button id="notification-btn" class="btn" style="margin-top: 15px; background: #3498db; border: none;">Enable Notifications</button>
         </header>
 
         <!-- The rest of your app's HTML (tabs, main, etc.) goes here. No changes needed. -->
