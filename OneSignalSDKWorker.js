@@ -1,1 +1,1 @@
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+importScripts('https://swagat-kumar-mishra.github.io/DocuMagic/OneSignalSDK.sw.js');
