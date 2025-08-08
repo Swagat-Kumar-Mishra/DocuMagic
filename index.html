@@ -11,28 +11,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <!-- =============================================================== -->
-    <!-- == FINAL ONESIGNAL SCRIPT BASED ON OFFICIAL DOCUMENTATION == -->
+    <!-- == YOUR UPDATED ONESIGNAL SCRIPT WITH NOTIFICATION BELL == -->
     <!-- =============================================================== -->
     
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.init({
-          // Your NEW OneSignal App ID
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
           appId: "be8fdc54-00c0-4a5b-886f-f9a81a0bf0aa",
           safari_web_id: "web.onesignal.auto.1947bcbb-3df5-45a5-b464-0be0e15f4a2c",
-          
-          // This creates the floating bell icon for subscribing
           notifyButton: {
             enable: true,
           },
-
-          // --- The final fixes based on the documentation ---
-          // This is recommended for reliability
-          autoResubscribe: true, 
-          // This explicitly tells OneSignal where its files are, fixing issues on GitHub Pages
-          serviceWorkerPath: "OneSignalSDKWorker.js",
         });
       });
     </script>
@@ -44,7 +35,7 @@
     <meta name="theme-color" content="#8e44ad">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <!-- All of your application's CSS is embedded here -->
+    <!-- All CSS is embedded here -->
     <style>
         :root {
             --primary-color: #8e44ad;
@@ -367,7 +358,7 @@
         <header class="header">
             <h1>DocuMagic ✨</h1>
             <p>Your One-Stop Solution for Document Conversion</p>
-            <!-- The old button is gone, the OneSignal bell will appear automatically -->
+            <!-- The old button is removed because OneSignal's notifyButton will create the bell icon -->
         </header>
 
         <nav class="tabs">
