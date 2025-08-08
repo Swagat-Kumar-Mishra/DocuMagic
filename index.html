@@ -11,83 +11,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <!-- =============================================================== -->
-    <!-- == PWA & FIREBASE CODE STARTS HERE == -->
+    <!-- == ONESIGNAL PUSH NOTIFICATION CODE STARTS HERE == -->
     <!-- =============================================================== -->
-
+    
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.init({
+          appId: "c0e37970-c1db-4f8d-95ca-f11ab4777c88", // Your OneSignal App ID
+        });
+      });
+    </script>
+    
+    <!-- =============================================================== -->
+    <!-- == ONESIGNAL CODE ENDS HERE == -->
+    <!-- =============================================================== -->
+    
     <!-- PWA Manifest & Theming -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#8e44ad">
     <link rel="apple-touch-icon" href="icon-192.png">
-
-    <!-- Firebase SDKs and Configuration -->
-    <script type="module">
-      // Import the functions we need from the Firebase SDKs
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-      import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-messaging.js";
-
-      // Your web app's Firebase configuration
-      const firebaseConfig = {
-        // PASTE YOUR FIREBASE CONFIGURATION HERE
-        apiKey: "YOUR_API_KEY_HERE",
-        authDomain: "YOUR_AUTH_DOMAIN_HERE",
-        projectId: "YOUR_PROJECT_ID_HERE",
-        storageBucket: "YOUR_STORAGE_BUCKET_HERE",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID_HERE",
-        appId: "YOUR_APP_ID_HERE"
-      };
-
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const messaging = getMessaging(app);
-
-      // This function requests permission and gets the token
-      function requestNotificationPermission() {
-        console.log('Requesting permission...');
-        Notification.requestPermission().then((permission) => {
-          if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            const vapidKey = "YOUR_VAPID_KEY_HERE"; // PASTE YOUR VAPID KEY HERE
-            getToken(messaging, { vapidKey: vapidKey }).then((currentToken) => {
-              if (currentToken) {
-                console.log('FCM Token:', currentToken);
-                alert('Successfully subscribed! Your token is: ' + currentToken);
-              } else {
-                alert('Could not get notification token. Please allow notifications for this site.');
-              }
-            }).catch((err) => {
-              console.error('An error occurred while retrieving token. ', err);
-              alert('An error occurred while getting the token.');
-            });
-          } else {
-            console.log('Unable to get permission to notify.');
-            alert('Permission for notifications was denied.');
-          }
-        });
-      }
-
-      // This is the reliable way to make the button work on all devices.
-      window.addEventListener('DOMContentLoaded', () => {
-          const notificationButton = document.getElementById('notification-btn');
-          if (notificationButton) {
-              notificationButton.addEventListener('click', requestNotificationPermission);
-          }
-      });
-    </script>
-    
-    <!-- Service Worker Registration -->
-    <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then(reg => console.log('Service Worker Registered:', reg))
-          .catch(err => console.error('Service Worker registration failed:', err));
-      });
-    }
-    </script>
-
-    <!-- =============================================================== -->
-    <!-- == PWA & FIREBASE CODE ENDS HERE == -->
-    <!-- =============================================================== -->
 
     <!-- All CSS is embedded here -->
     <style>
@@ -412,9 +356,6 @@
         <header class="header">
             <h1>DocuMagic ✨</h1>
             <p>Your One-Stop Solution for Document Conversion</p>
-            
-            <!-- This button has the required ID for our script to find it -->
-            <button id="notification-btn" class="btn" style="margin-top: 15px; background: #3498db;">Enable Notifications</button>
         </header>
 
         <nav class="tabs">
@@ -435,6 +376,7 @@
                     <p id="p2i-status-text">Processing...</p>
                     <div class="progress-bar"><div class="progress" id="p2i-progress"></div></div>
                 </div>
+                <!-- Action buttons will be injected here by JS -->
                 <div id="p2i-action-area"></div>
                 <div class="results-area" id="p2i-results-area"></div>
             </div>
@@ -464,14 +406,16 @@
         </main>
     </div>
 
-    <!-- External libraries included via CDN -->
+    <!-- External libraries included via CDN. No need to download anything. -->
+    <!-- PDF.js for rendering PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
     </script>
+    <!-- jsPDF for creating PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
-    <!-- All of your application's JavaScript logic -->
+    <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             
@@ -527,6 +471,7 @@
                     return;
                 }
                 
+                // Reset UI
                 p2iResultsArea.innerHTML = '<div class="results-grid"></div>';
                 p2iActionArea.innerHTML = '';
                 p2iActionArea.style.display = 'none';
@@ -547,7 +492,7 @@
 
                     for (let i = 1; i <= numPages; i++) {
                         const page = await pdfDoc.getPage(i);
-                        const viewport = page.getViewport({ scale: 2.0 });
+                        const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
@@ -578,6 +523,7 @@
                     
                     p2iStatusText.textContent = 'Conversion Complete!';
 
+                    // Add action buttons if pages were generated
                     if (numPages > 0) {
                         p2iActionArea.style.display = 'block';
                         p2iActionArea.innerHTML = `
@@ -592,6 +538,7 @@
                 };
             }
 
+            // Listen for checkbox changes to update button states
             p2iResultsArea.addEventListener('change', e => {
                 if (e.target.classList.contains('p2i-select-item')) {
                     updateP2iDownloadButtonState();
@@ -624,10 +571,13 @@
                     if (resultItem) {
                         const downloadLink = resultItem.querySelector('.download-link');
                         if (downloadLink) {
+                            // Create a temporary link and click it programmatically.
+                            // This is a more reliable method for triggering downloads.
                             const tempLink = document.createElement('a');
                             tempLink.href = downloadLink.href;
                             tempLink.download = downloadLink.download;
                             
+                            // Stagger downloads slightly to help browsers manage multiple files
                             setTimeout(() => {
                                 document.body.appendChild(tempLink);
                                 tempLink.click();
