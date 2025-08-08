@@ -388,69 +388,50 @@
         </main>
     </div>
 
-    <!-- External libraries -->
+    <!-- External libraries included via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-    <!-- Main App and Firebase Logic -->
+    <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // --- Firebase Setup ---
-            // WARNING: This is insecure. Do not expose your config in production.
-            const firebaseConfig = {
-                apiKey: "",
-                authDomain: "",
-                projectId: "",
-                storageBucket: "",
-                messagingSenderId: "",
-                appId: "",
-                measurementId: ""
-            };
 
-            // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            const messaging = firebase.messaging();
-            const database = firebase.database();
-            
-            function setupFCM() {
-                navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                    .then((registration) => {
-                        messaging.useServiceWorker(registration);
-                        messaging.requestPermission().then(() => {
-                            console.log('Notification permission granted.');
-                            return messaging.getToken({ vapidKey: 'YOUR_VAPID_KEY' }); // You get this from Firebase Console > Project Settings > Cloud Messaging
-                        }).then((token) => {
-                            console.log('FCM Token:', token);
-                        }).catch((err) => {
-                            console.log('Unable to get permission or token.', err);
-                        });
+            // --- Service Worker and Notifications ---
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(swReg => {
+                        console.log('Service Worker is registered', swReg);
+                        // Request notification permission on first visit
+                        requestNotificationPermission();
+                        // Notify user that the app has started
+                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.');
+                    })
+                    .catch(error => {
+                        console.error('Service Worker Error', error);
                     });
             }
 
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                setupFCM();
+            function requestNotificationPermission() {
+                Notification.requestPermission(status => {
+                    console.log('Notification permission status:', status);
+                });
             }
 
-            const notificationsRef = database.ref('notifications/latest');
-            notificationsRef.on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    const isNew = (Date.now() - data.timestamp) < 10000;
-                    if (isNew) {
-                         console.log("New notification received while app is open:", data);
-                    }
+            function sendNotification(title, body) {
+                if (Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: 'icon-192.png',
+                            vibrate: [200, 100, 200],
+                        });
+                    });
                 }
-            });
-
+            }
+            
             // --- General UI Logic: Tab Switching ---
             const tabs = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -459,6 +440,7 @@
                 tab.addEventListener('click', () => {
                     tabs.forEach(item => item.classList.remove('active'));
                     tab.classList.add('active');
+
                     const target = document.querySelector(`#${tab.dataset.tab}`);
                     tabContents.forEach(content => content.classList.remove('active'));
                     target.classList.add('active');
@@ -513,8 +495,10 @@
                 fileReader.onload = async (e) => {
                     const pdfData = new Uint8Array(e.target.result);
                     const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    
                     const numPages = pdfDoc.numPages;
                     p2iStatusText.textContent = `Converting ${numPages} pages...`;
+
                     const resultsGrid = p2iResultsArea.querySelector('.results-grid');
 
                     for (let i = 1; i <= numPages; i++) {
@@ -526,6 +510,7 @@
                         canvas.width = viewport.width;
 
                         await page.render({ canvasContext: context, viewport: viewport }).promise;
+
                         const imgDataUrl = canvas.toDataURL('image/png');
                         
                         const resultItem = document.createElement('div');
@@ -607,6 +592,7 @@
                         }
                     }
                 });
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`);
             }
 
             // --- Feature 2: Image to PDF ---
@@ -720,6 +706,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`);
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
