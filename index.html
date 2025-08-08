@@ -15,14 +15,18 @@
     <!-- =============================================================== -->
     
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(function(OneSignal) {
-        OneSignal.init({
-          appId: "c0e37970-c1db-4f8d-95ca-f11ab4777c88", // Your OneSignal App ID
-        });
-      });
-    </script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "be8fdc54-00c0-4a5b-886f-f9a81a0bf0aa",
+      safari_web_id: "web.onesignal.auto.1947bcbb-3df5-45a5-b464-0be0e15f4a2c",
+      notifyButton: {
+        enable: true,
+      },
+    });
+  });
+</script>
     
     <!-- =============================================================== -->
     <!-- == ONESIGNAL CODE ENDS HERE == -->
