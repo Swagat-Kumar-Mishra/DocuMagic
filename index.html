@@ -10,26 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- =============================================================== -->
-    <!-- == YOUR UPDATED ONESIGNAL SCRIPT WITH NOTIFICATION BELL == -->
-    <!-- =============================================================== -->
-    
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "be8fdc54-00c0-4a5b-886f-f9a81a0bf0aa",
-          safari_web_id: "web.onesignal.auto.1947bcbb-3df5-45a5-b464-0be0e15f4a2c",
-          notifyButton: {
-            enable: true,
-          },
-        });
-      });
-    </script>
-    
-    <!-- =============================================================== -->
-    
     <!-- PWA Manifest & Theming -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#8e44ad">
@@ -358,7 +338,6 @@
         <header class="header">
             <h1>DocuMagic ✨</h1>
             <p>Your One-Stop Solution for Document Conversion</p>
-            <!-- The old button is removed because OneSignal's notifyButton will create the bell icon -->
         </header>
 
         <nav class="tabs">
@@ -409,18 +388,49 @@
         </main>
     </div>
 
-    <!-- External libraries included via CDN. No need to download anything. -->
-    <!-- PDF.js for rendering PDFs -->
+    <!-- External libraries included via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
     </script>
-    <!-- jsPDF for creating PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
     <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Service Worker and Notifications ---
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(swReg => {
+                        console.log('Service Worker is registered', swReg);
+                        // Request notification permission on first visit
+                        requestNotificationPermission();
+                        // Notify user that the app has started
+                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.');
+                    })
+                    .catch(error => {
+                        console.error('Service Worker Error', error);
+                    });
+            }
+
+            function requestNotificationPermission() {
+                Notification.requestPermission(status => {
+                    console.log('Notification permission status:', status);
+                });
+            }
+
+            function sendNotification(title, body) {
+                if (Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, {
+                            body: body,
+                            icon: 'icon-192.png',
+                            vibrate: [200, 100, 200],
+                        });
+                    });
+                }
+            }
             
             // --- General UI Logic: Tab Switching ---
             const tabs = document.querySelectorAll('.tab-button');
@@ -436,7 +446,6 @@
                     target.classList.add('active');
                 });
             });
-
 
             // --- Feature 1: PDF to Image ---
             const p2iDropZone = document.getElementById('p2i-drop-zone');
@@ -474,7 +483,6 @@
                     return;
                 }
                 
-                // Reset UI
                 p2iResultsArea.innerHTML = '<div class="results-grid"></div>';
                 p2iActionArea.innerHTML = '';
                 p2iActionArea.style.display = 'none';
@@ -495,7 +503,7 @@
 
                     for (let i = 1; i <= numPages; i++) {
                         const page = await pdfDoc.getPage(i);
-                        const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
+                        const viewport = page.getViewport({ scale: 2.0 });
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
@@ -526,7 +534,6 @@
                     
                     p2iStatusText.textContent = 'Conversion Complete!';
 
-                    // Add action buttons if pages were generated
                     if (numPages > 0) {
                         p2iActionArea.style.display = 'block';
                         p2iActionArea.innerHTML = `
@@ -541,7 +548,6 @@
                 };
             }
 
-            // Listen for checkbox changes to update button states
             p2iResultsArea.addEventListener('change', e => {
                 if (e.target.classList.contains('p2i-select-item')) {
                     updateP2iDownloadButtonState();
@@ -574,13 +580,10 @@
                     if (resultItem) {
                         const downloadLink = resultItem.querySelector('.download-link');
                         if (downloadLink) {
-                            // Create a temporary link and click it programmatically.
-                            // This is a more reliable method for triggering downloads.
                             const tempLink = document.createElement('a');
                             tempLink.href = downloadLink.href;
                             tempLink.download = downloadLink.download;
                             
-                            // Stagger downloads slightly to help browsers manage multiple files
                             setTimeout(() => {
                                 document.body.appendChild(tempLink);
                                 tempLink.click();
@@ -589,6 +592,7 @@
                         }
                     }
                 });
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`);
             }
 
             // --- Feature 2: Image to PDF ---
@@ -702,6 +706,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`);
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
