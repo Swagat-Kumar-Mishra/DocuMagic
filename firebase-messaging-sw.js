@@ -4,13 +4,13 @@ importScripts('https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js')
 
 // WARNING: This is insecure. Do not expose your config in production.
 const firebaseConfig = {
-    apiKey: "AIzaSyB9QUKJVEkxig7oi8u9A2z1bbwrgSJHw_A",
-    authDomain: "documagic-4e803.firebaseapp.com",
-    projectId: "documagic-4e803",
-    storageBucket: "documagic-4e803.appspot.com",
-    messagingSenderId: "697027141753",
-    appId: "1:697027141753:web:3b3ca85ff656f37bcbb4a8",
-    measurementId: "G-RXB9ECLDZ3"
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: ""
 };
 
 firebase.initializeApp(firebaseConfig);
