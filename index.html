@@ -397,21 +397,45 @@
 
     <!-- All JavaScript logic is embedded here -->
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            if ('serviceWorker' in navigator) {
-                try {
-                    const registration = await navigator.serviceWorker.register('sw.js');
-                    console.log('Service Worker is registered.');
-                    
-                    // After registering, ask for permission and set up the periodic sync.
-                    await setupPeriodicSync(registration);
+        document.addEventListener('DOMContentLoaded', () => {
 
-                } catch (error) {
-                    console.error('Service Worker registration failed:', error);
+            // --- Service Worker and Notifications ---
+            if ('serviceWorker' in navigator && 'PushManager' in window) {
+                navigator.serviceWorker.register('sw.js')
+                    .then(swReg => {
+                        console.log('Service Worker is registered', swReg);
+                        // Request notification permission on first visit
+                        requestNotificationPermission();
+                        // Notify user that the app has started
+                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.', 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
+                    })
+                    .catch(error => {
+                        console.error('Service Worker Error', error);
+                    });
+            }
+
+            function requestNotificationPermission() {
+                Notification.requestPermission(status => {
+                    console.log('Notification permission status:', status);
+                });
+            }
+
+            function sendNotification(title, body, imageUrl) {
+                if (Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        const options = {
+                            body: body,
+                            icon: 'icon-192.png', // Small icon for the notification
+                            badge: 'notification-badge.png', // Monochrome icon for status bar on mobile
+                            vibrate: [200, 100, 200],
+                            image: imageUrl // The large image to display in the notification
+                        };
+                        registration.showNotification(title, options);
+                    });
                 }
             }
             
-            // --- ALL THE ORIGINAL APPLICATION LOGIC REMAINS BELOW ---
+            // --- General UI Logic: Tab Switching ---
             const tabs = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
 
@@ -438,11 +462,6 @@
             p2iDropZone.addEventListener('click', () => p2iFileInput.click());
             p2iFileInput.addEventListener('change', (e) => handleP2iFiles(e.target.files));
 
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 p2iDropZone.addEventListener(eventName, preventDefaults, false);
             });
@@ -453,6 +472,11 @@
                 p2iDropZone.addEventListener(eventName, () => p2iDropZone.classList.remove('dragover'), false);
             });
             p2iDropZone.addEventListener('drop', (e) => handleP2iFiles(e.dataTransfer.files), false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
 
             async function handleP2iFiles(files) {
                 if (files.length === 0) return;
@@ -571,6 +595,7 @@
                         }
                     }
                 });
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
             // --- Feature 2: Image to PDF ---
@@ -684,6 +709,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
@@ -695,32 +721,6 @@
                 }, 3000);
             });
         });
-
-        async function setupPeriodicSync(registration) {
-            // Ask for Notification permission.
-            const permissionState = await Notification.requestPermission();
-            if (permissionState !== 'granted') {
-                console.log('Notification permission not granted.');
-                return;
-            }
-
-            // Check if we have permission for Periodic Background Sync.
-            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-            if (status.state === 'granted') {
-                try {
-                    // Register the background task.
-                    // The browser will run this roughly once every 12 hours, or sooner.
-                    await registration.periodicSync.register('check-for-updates', {
-                        minInterval: 12 * 60 * 60 * 1000, 
-                    });
-                    console.log('Periodic background sync has been registered.');
-                } catch (e) {
-                    console.error('Periodic background sync registration failed:', e);
-                }
-            } else {
-                console.log('Periodic background sync permission not granted.');
-            }
-        }
     </script>
 </body>
 </html>
