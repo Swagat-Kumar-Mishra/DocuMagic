@@ -398,61 +398,20 @@
     <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-
-            // --- Service Worker and Notifications Setup ---
             if ('serviceWorker' in navigator) {
                 try {
                     const registration = await navigator.serviceWorker.register('sw.js');
-                    console.log('Service Worker registered successfully.');
+                    console.log('Service Worker is registered.');
                     
-                    // Register the periodic sync after the SW is ready
-                    await registerPeriodicSync(registration);
+                    // After registering, ask for permission and set up the periodic sync.
+                    await setupPeriodicSync(registration);
 
-                    // Show a welcome notification on startup
-                    sendNotification('DocuMagic is running!', 'Ready to convert your documents.', 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
-                    
                 } catch (error) {
                     console.error('Service Worker registration failed:', error);
                 }
             }
             
-            async function registerPeriodicSync(registration) {
-                // Check if the user has granted permission for notifications
-                const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-                if (status.state === 'granted') {
-                    try {
-                        // Register a sync task to check for updates
-                        await registration.periodicSync.register('check-for-updates', {
-                            minInterval: 12 * 60 * 60 * 1000, // Check roughly every 12 hours
-                        });
-                        console.log('Periodic background sync registered!');
-                    } catch (e) {
-                        console.error('Periodic background sync could not be registered!', e);
-                    }
-                } else {
-                    console.log('Periodic background sync permission not granted.');
-                }
-            }
-
-            function sendNotification(title, body, imageUrl) {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    navigator.serviceWorker.ready.then(registration => {
-                        const options = {
-                            body: body,
-                            icon: 'icon-192.png',
-                            badge: 'notification-badge.png',
-                            vibrate: [200, 100, 200],
-                            image: imageUrl
-                        };
-                        registration.showNotification(title, options);
-                    });
-                } else {
-                    // Request permission if not already granted
-                    Notification.requestPermission();
-                }
-            }
-            
-            // --- General UI Logic: Tab Switching ---
+            // --- ALL THE ORIGINAL APPLICATION LOGIC REMAINS BELOW ---
             const tabs = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
 
@@ -612,7 +571,6 @@
                         }
                     }
                 });
-                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
             // --- Feature 2: Image to PDF ---
@@ -726,7 +684,6 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
-                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
@@ -738,6 +695,32 @@
                 }, 3000);
             });
         });
+
+        async function setupPeriodicSync(registration) {
+            // Ask for Notification permission.
+            const permissionState = await Notification.requestPermission();
+            if (permissionState !== 'granted') {
+                console.log('Notification permission not granted.');
+                return;
+            }
+
+            // Check if we have permission for Periodic Background Sync.
+            const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+            if (status.state === 'granted') {
+                try {
+                    // Register the background task.
+                    // The browser will run this roughly once every 12 hours, or sooner.
+                    await registration.periodicSync.register('check-for-updates', {
+                        minInterval: 12 * 60 * 60 * 1000, 
+                    });
+                    console.log('Periodic background sync has been registered.');
+                } catch (e) {
+                    console.error('Periodic background sync registration failed:', e);
+                }
+            } else {
+                console.log('Periodic background sync permission not granted.');
+            }
+        }
     </script>
 </body>
 </html>
