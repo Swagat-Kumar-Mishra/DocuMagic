@@ -407,7 +407,7 @@
                         // Request notification permission on first visit
                         requestNotificationPermission();
                         // Notify user that the app has started
-                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.');
+                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.', 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                     })
                     .catch(error => {
                         console.error('Service Worker Error', error);
@@ -420,14 +420,17 @@
                 });
             }
 
-            function sendNotification(title, body) {
+            function sendNotification(title, body, imageUrl) {
                 if (Notification.permission === 'granted') {
                     navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification(title, {
+                        const options = {
                             body: body,
-                            icon: 'icon-192.png',
+                            icon: 'icon-192.png', // Small icon for the notification
+                            badge: 'notification-badge.png', // Monochrome icon for status bar on mobile
                             vibrate: [200, 100, 200],
-                        });
+                            image: imageUrl // The large image to display in the notification
+                        };
+                        registration.showNotification(title, options);
                     });
                 }
             }
@@ -592,7 +595,7 @@
                         }
                     }
                 });
-                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`);
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
             // --- Feature 2: Image to PDF ---
@@ -706,7 +709,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
-                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`);
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
