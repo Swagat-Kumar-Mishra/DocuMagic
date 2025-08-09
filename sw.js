@@ -1,56 +1,36 @@
-// --- IndexedDB for storing the last notification version ---
-const DB_NAME = 'DocuMagicDB';
-const STORE_NAME = 'KeyValueStore';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(STORE_NAME);
-    };
+// A simple function to store and retrieve the last seen version number.
+// This prevents showing the same notification over and over.
+async function getStorage() {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open("NotificationDB", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("KeyValueStore");
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+
+  return {
+    get: key => new Promise(resolve => db.transaction("KeyValueStore").objectStore("KeyValueStore").get(key).onsuccess = event => resolve(event.target.result)),
+    set: (key, value) => new Promise(resolve => {
+        const req = db.transaction("KeyValueStore", "readwrite").objectStore("KeyValueStore").put(value, key);
+        req.onsuccess = () => resolve();
+    }),
+  };
 }
 
-function getFromDB(db, key) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.get(key);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function setToDB(db, key, value) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(value, key);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-// --- Main function to check for updates and notify ---
-async function checkForUpdatesAndNotify() {
+// The main function that checks for updates.
+async function checkForUpdates() {
   try {
-    // Fetch the latest notification data from the server file
-    // The 'cache: "no-store"' is crucial to ensure we get the latest version
+    // Fetch the notification file from your repository.
+    // The 'cache: "no-store"' is VITAL to make sure we get the latest version.
     const response = await fetch('notification.json', { cache: 'no-store' });
-    if (!response.ok) {
-        console.error('Failed to fetch notification.json');
-        return;
-    }
     const data = await response.json();
 
-    const db = await openDB();
-    const lastVersion = await getFromDB(db, 'lastNotificationVersion');
+    const storage = await getStorage();
+    const lastVersion = await storage.get('last_version');
 
-    // If the version in the file is new, show a notification
+    // If the version in the file is new, show the notification.
     if (data.version !== lastVersion) {
-      console.log('New notification version found:', data.version);
+      console.log(`New notification found. Version: ${data.version}`);
       const options = {
         body: data.body,
         icon: 'icon-192.png',
@@ -58,20 +38,19 @@ async function checkForUpdatesAndNotify() {
         image: data.image,
         vibrate: [200, 100, 200]
       };
+      // Show the notification.
       await self.registration.showNotification(data.title, options);
-      // Save the new version so we don't show this notification again
-      await setToDB(db, 'lastNotificationVersion', data.version);
+      // Save the new version so we don't show it again.
+      await storage.set('last_version', data.version);
     } else {
-      console.log('Notification version is up to date.');
+      console.log('Notification is up to date.');
     }
   } catch (error) {
-    console.error('Error during periodic sync check:', error);
+    console.error('Error during update check:', error);
   }
 }
 
-// --- Service Worker Event Listeners ---
-
-// This ensures the new service worker activates immediately
+// When the PWA is first installed, it should be ready immediately.
 self.addEventListener('install', event => {
     event.waitUntil(self.skipWaiting());
 });
@@ -80,10 +59,9 @@ self.addEventListener('activate', event => {
     event.waitUntil(self.clients.claim());
 });
 
-// Listen for the 'periodicsync' event
+// This is the background timer. It runs automatically.
 self.addEventListener('periodicsync', event => {
   if (event.tag === 'check-for-updates') {
-    // Run our update check function
-    event.waitUntil(checkForUpdatesAndNotify());
+    event.waitUntil(checkForUpdates());
   }
 });
