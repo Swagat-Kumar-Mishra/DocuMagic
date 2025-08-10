@@ -15,6 +15,7 @@
     <meta name="theme-color" content="#8e44ad">
     <link rel="apple-touch-icon" href="icon-192.png">
 
+    <!-- All CSS is embedded here -->
     <style>
         :root {
             --primary-color: #8e44ad;
@@ -394,6 +395,7 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
+    <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -402,8 +404,10 @@
                 navigator.serviceWorker.register('sw.js')
                     .then(swReg => {
                         console.log('Service Worker is registered', swReg);
+                        // Request notification permission on first visit
                         requestNotificationPermission();
-                        // No notification sent here, as service worker will poll the latest.json
+                        // Notify user that the app has started
+                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.', 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                     })
                     .catch(error => {
                         console.error('Service Worker Error', error);
@@ -416,6 +420,21 @@
                 });
             }
 
+            function sendNotification(title, body, imageUrl) {
+                if (Notification.permission === 'granted') {
+                    navigator.serviceWorker.ready.then(registration => {
+                        const options = {
+                            body: body,
+                            icon: 'icon-192.png', // Small icon for the notification
+                            badge: 'notification-badge.png', // Monochrome icon for status bar on mobile
+                            vibrate: [200, 100, 200],
+                            image: imageUrl // The large image to display in the notification
+                        };
+                        registration.showNotification(title, options);
+                    });
+                }
+            }
+            
             // --- General UI Logic: Tab Switching ---
             const tabs = document.querySelectorAll('.tab-button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -576,7 +595,7 @@
                         }
                     }
                 });
-                // No notification here; notifications are now handled by the service worker polling system.
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
             // --- Feature 2: Image to PDF ---
@@ -690,6 +709,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
