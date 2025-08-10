@@ -400,52 +400,60 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             // --- Service Worker and Notifications ---
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
+            if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js')
                     .then(swReg => {
                         console.log('Service Worker is registered', swReg);
-                        
-                        // Request notification permission as soon as it's registered
-                        requestNotificationPermission();
-
-                        // Once the service worker is ready and controlling the page...
-                        navigator.serviceWorker.ready.then(registration => {
-                            console.log('Service Worker is ready.');
-                            // Immediately ask the service worker to check for updates when the app loads.
-                            registration.active.postMessage('checkForUpdates');
-
-                            // Then, set up a recurring check every 60 seconds while the app is open.
-                            setInterval(() => {
-                                // Check if there's an active service worker before posting a message
-                                if (registration.active) {
-                                    registration.active.postMessage('checkForUpdates');
-                                }
-                            }, 60000); 
-                        });
+                        requestNotificationPermission(); // Ask for permission early
+                        // After registration, set up periodic sync
+                        setupPeriodicSync(swReg);
                     })
                     .catch(error => {
                         console.error('Service Worker Error', error);
                     });
             }
 
-            function requestNotificationPermission() {
-                Notification.requestPermission(status => {
-                    console.log('Notification permission status:', status);
-                });
+            async function setupPeriodicSync(reg) {
+                // Check if the browser supports Periodic Background Sync
+                if ('periodicSync' in reg) {
+                    try {
+                        // Request permission for periodic background sync
+                        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                        if (status.state === 'granted') {
+                            // Register a sync event. The browser controls the exact timing.
+                            await reg.periodicSync.register('get-notifications', {
+                                minInterval: 12 * 60 * 60 * 1000, // e.g., 12 hours
+                            });
+                            console.log('Periodic background sync registered!');
+                        } else {
+                            console.log('Periodic background sync permission not granted.');
+                        }
+                    } catch (e) {
+                        console.error('Periodic background sync failed:', e);
+                    }
+                }
             }
 
-            // This function remains for sending notifications based on direct user actions (e.g., download complete)
+            function requestNotificationPermission() {
+                // Ask for notification permission if not already granted or denied
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission(status => {
+                        console.log('Notification permission status:', status);
+                    });
+                }
+            }
+
+            // This function is still used for user-action-based notifications (e.g., download complete)
             function sendNotification(title, body, imageUrl) {
                 if (Notification.permission === 'granted') {
                     navigator.serviceWorker.ready.then(registration => {
-                        const options = {
+                        registration.showNotification(title, {
                             body: body,
                             icon: 'icon-192.png',
                             badge: 'notification-badge.png',
                             vibrate: [200, 100, 200],
                             image: imageUrl
-                        };
-                        registration.showNotification(title, options);
+                        });
                     });
                 }
             }
