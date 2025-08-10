@@ -399,61 +399,42 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- Service Worker and Notifications ---
+            // --- Service Worker and Notifications (New Simplified Logic) ---
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(swReg => {
-                        console.log('Service Worker is registered', swReg);
-                        requestNotificationPermission(); // Ask for permission early
-                        // After registration, set up periodic sync
-                        setupPeriodicSync(swReg);
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('MAIN: Service Worker registration successful. Scope:', registration.scope);
+                        // Just ask for permission. The service worker handles everything else automatically.
+                        requestNotificationPermission();
                     })
                     .catch(error => {
-                        console.error('Service Worker Error', error);
+                        console.error('MAIN: Service Worker registration failed:', error);
                     });
-            }
-
-            async function setupPeriodicSync(reg) {
-                // Check if the browser supports Periodic Background Sync
-                if ('periodicSync' in reg) {
-                    try {
-                        // Request permission for periodic background sync
-                        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-                        if (status.state === 'granted') {
-                            // Register a sync event. The browser controls the exact timing.
-                            await reg.periodicSync.register('get-notifications', {
-                                minInterval: 12 * 60 * 60 * 1000, // e.g., 12 hours
-                            });
-                            console.log('Periodic background sync registered!');
-                        } else {
-                            console.log('Periodic background sync permission not granted.');
-                        }
-                    } catch (e) {
-                        console.error('Periodic background sync failed:', e);
-                    }
-                }
             }
 
             function requestNotificationPermission() {
-                // Ask for notification permission if not already granted or denied
                 if (Notification.permission === 'default') {
+                    console.log('MAIN: Requesting notification permission.');
                     Notification.requestPermission(status => {
-                        console.log('Notification permission status:', status);
+                        console.log('MAIN: Notification permission status:', status);
                     });
+                } else {
+                    console.log('MAIN: Notification permission is already:', Notification.permission);
                 }
             }
 
-            // This function is still used for user-action-based notifications (e.g., download complete)
+            // This function is kept for notifications triggered by direct user actions inside the app
             function sendNotification(title, body, imageUrl) {
                 if (Notification.permission === 'granted') {
                     navigator.serviceWorker.ready.then(registration => {
-                        registration.showNotification(title, {
+                        const options = {
                             body: body,
                             icon: 'icon-192.png',
                             badge: 'notification-badge.png',
                             vibrate: [200, 100, 200],
                             image: imageUrl
-                        });
+                        };
+                        registration.showNotification(title, options);
                     });
                 }
             }
@@ -473,7 +454,7 @@
                 });
             });
 
-            // --- Feature 1: PDF to Image ---
+            // --- Feature 1: PDF to Image (Original Logic) ---
             const p2iDropZone = document.getElementById('p2i-drop-zone');
             const p2iFileInput = document.getElementById('p2i-file-input');
             const p2iProgressArea = document.getElementById('p2i-progress-area');
@@ -618,10 +599,10 @@
                         }
                     }
                 });
-                sendNotification('PDF to Image Export Complete!', `${checkedItems.length} images have been saved successfully.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
+                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
-            // --- Feature 2: Image to PDF ---
+            // --- Feature 2: Image to PDF (Original Logic) ---
             const i2pDropZone = document.getElementById('i2p-drop-zone');
             const i2pFileInput = document.getElementById('i2p-file-input');
             const i2pConvertBtn = document.getElementById('i2p-convert-btn');
@@ -732,7 +713,7 @@
                     }
                     doc.save(finalFileName);
                     i2pStatusText.textContent = 'PDF created successfully!';
-                    sendNotification('Image to PDF Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
+                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
