@@ -1,4 +1,79 @@
-// --- IndexedDB Helpers for Storing Notification Version ---
+// --- Service Worker Lifecycle: Make it update and activate immediately ---
+
+self.addEventListener('install', event => {
+  console.log('SW (New Version): Installing...');
+  // This is the most important part: it tells the browser
+  // "Don't wait, activate this new service worker as soon as it's installed."
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  console.log('SW: Activated. Ready to take control.');
+  // This command tells the service worker to take control of all open app pages.
+  // After it succeeds, it runs our notification check immediately.
+  event.waitUntil(
+    clients.claim().then(() => {
+      console.log('SW: Clients claimed. Running the first notification check...');
+      return checkForUpdatesAndNotify();
+    })
+  );
+});
+
+// --- Main Notification Logic ---
+async function checkForUpdatesAndNotify() {
+    console.log('SW: Starting checkForUpdatesAndNotify().');
+    try {
+        // Fetch the notification file with a cache-busting query to ensure it's fresh.
+        const response = await fetch(`/notifications.json?cachebust=${new Date().getTime()}`);
+        console.log('SW: Fetched notifications.json. Status:', response.status);
+
+        if (!response.ok) {
+            console.error('SW: Failed to fetch notifications.json.');
+            return;
+        }
+
+        const data = await response.json();
+        console.log('SW: Successfully parsed JSON data:', data);
+
+        const { version, title, body, image } = data;
+
+        // Get the last version we notified about from the browser's internal database.
+        const lastNotifiedVersion = await getVal('lastNotifiedVersion');
+        console.log(`SW: Server version is ${version}. The last version I showed was ${lastNotifiedVersion || 0}.`);
+
+        if (version > (lastNotifiedVersion || 0)) {
+            console.log('SW: New version detected! Preparing to show notification.');
+
+            // Show the notification.
+            await self.registration.showNotification(title, {
+                body: body,
+                icon: 'icon-192.png',
+                badge: 'notification-badge.png',
+                image: image,
+                tag: `documagic-v${version}` // Give a unique tag to prevent duplicates
+            });
+
+            console.log('SW: Notification should be visible now. Storing new version in DB.');
+            // Store the new version number so we don't show this notification again.
+            await setVal('lastNotifiedVersion', version);
+            console.log('SW: Version updated in DB to', version);
+        } else {
+            console.log('SW: No new version found. Ending check.');
+        }
+    } catch (error) {
+        console.error('SW: A critical error occurred in checkForUpdatesAndNotify:', error);
+    }
+}
+
+// --- Event listener for clicking the notification ---
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+    // Opens your app when the notification is clicked.
+    event.waitUntil(clients.openWindow('/'));
+});
+
+
+// --- IndexedDB Helper Functions (Unchanged) ---
 const DB_NAME = 'DocuMagicDB';
 const STORE_NAME = 'KeyValueStore';
 
@@ -15,20 +90,16 @@ function getDb() {
         };
     });
 }
-
 async function getVal(key) {
     const db = await getDb();
     return new Promise((resolve) => {
         const transaction = db.transaction(STORE_NAME, 'readonly');
         const store = transaction.objectStore(STORE_NAME);
         const request = store.get(key);
-        request.onsuccess = () => {
-            resolve(request.result ? request.result.value : null);
-        };
-        request.onerror = () => resolve(null); // Resolve with null on error
+        request.onsuccess = () => resolve(request.result ? request.result.value : null);
+        request.onerror = () => resolve(null);
     });
 }
-
 async function setVal(key, value) {
     const db = await getDb();
     return new Promise((resolve, reject) => {
@@ -39,92 +110,3 @@ async function setVal(key, value) {
         request.onerror = (event) => reject("Error setting value in DB: " + event.target.errorCode);
     });
 }
-
-
-// --- Main Notification Logic ---
-async function checkForUpdatesAndNotify() {
-    console.log('Checking for notification updates...');
-    try {
-        // Add a cache-busting query to ensure we get the latest file
-        const response = await fetch(`/notifications.json?v=${new Date().getTime()}`);
-        if (!response.ok) {
-            console.error('Could not fetch notifications.json. Status:', response.status);
-            return;
-        }
-        
-        const data = await response.json();
-        const { version, title, body, image } = data;
-
-        // Get the last version we notified the user about from IndexedDB
-        const lastNotifiedVersion = await getVal('lastNotifiedVersion') || 0;
-
-        if (version > lastNotifiedVersion) {
-            console.log(`New notification found. Version: ${version}, Last Version: ${lastNotifiedVersion}`);
-            
-            const options = {
-                body: body,
-                icon: 'icon-192.png',
-                badge: 'notification-badge.png',
-                image: image,
-                data: {
-                    url: self.location.origin, // URL to open on click
-                }
-            };
-            
-            await self.registration.showNotification(title, options);
-            await setVal('lastNotifiedVersion', version);
-        } else {
-            console.log('No new notification found. Current version is up-to-date.');
-        }
-    } catch (error) {
-        console.error('Error during notification check:', error);
-    }
-}
-
-
-// --- Service Worker Event Listeners ---
-
-self.addEventListener('install', event => {
-    console.log('Service Worker: New version installed.');
-    // Force the waiting service worker to become the active service worker.
-    self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-    console.log('Service Worker: Activated.');
-    // Take control of all open clients immediately.
-    event.waitUntil(clients.claim().then(() => {
-        // Perform an initial check as soon as the new service worker is active.
-        return checkForUpdatesAndNotify();
-    }));
-});
-
-// Listen for periodic background sync events
-self.addEventListener('periodicsync', event => {
-    if (event.tag === 'get-notifications') {
-        console.log('Periodic sync triggered for notifications.');
-        event.waitUntil(checkForUpdatesAndNotify());
-    }
-});
-
-// This is for notifications sent from the app itself (e.g., on download complete)
-self.addEventListener('push', event => {
-    const data = event.data.json();
-    const options = {
-        body: data.body,
-        icon: 'icon-192.png',
-        badge: 'notification-badge.png',
-        image: data.image
-    };
-    event.waitUntil(
-        self.registration.showNotification(data.title, options)
-    );
-});
-
-// Open the app when the notification is clicked
-self.addEventListener('notificationclick', event => {
-    event.notification.close();
-    event.waitUntil(
-        clients.openWindow(event.notification.data.url || '/')
-    );
-});
