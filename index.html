@@ -10,11 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- PWA Manifest & Theming -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#8e44ad">
-    <link rel="apple-touch-icon" href="icon-192.png">
-
     <!-- All CSS is embedded here -->
     <style>
         :root {
@@ -187,9 +182,9 @@
             font-family: var(--font-family);
             transition: all 0.3s ease;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: inline-block;
+            display: inline-block; /* Changed for side-by-side elements */
             width: fit-content;
-            margin: 0;
+            margin: 0; /* Adjusted margin */
         }
         
         .btn:disabled {
@@ -282,13 +277,14 @@
             flex-direction: column;
             text-align: center;
             padding: 10px;
+            cursor: pointer; /* Make the whole overlay clickable */
         }
         
         .result-item:hover .download-overlay {
             opacity: 1;
         }
         
-        .download-overlay .download-link {
+        .download-overlay .download-text {
             color: var(--success-color);
             font-weight: 700;
             text-decoration: none;
@@ -296,10 +292,6 @@
             font-size: 1.2em;
         }
         
-        .download-overlay .download-link:hover {
-            text-decoration: underline;
-        }
-
         .placeholder-text {
             color: var(--light-gray);
             text-align: center;
@@ -307,6 +299,7 @@
             font-style: italic;
         }
 
+        /* Styles for selection checkboxes */
         .result-item .selection-controls {
             position: absolute;
             top: 8px;
@@ -328,7 +321,7 @@
         #p2i-action-area {
             text-align: center; 
             margin: 25px 0 0 0;
-            display: none;
+            display: none; /* Hidden by default */
         }
     </style>
 </head>
@@ -388,52 +381,18 @@
         </main>
     </div>
 
-    <!-- External libraries included via CDN -->
+    <!-- External libraries included via CDN. No need to download anything. -->
+    <!-- PDF.js for rendering PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
     </script>
+    <!-- jsPDF for creating PDFs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 
     <!-- All JavaScript logic is embedded here -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
-            // --- Service Worker and Notifications ---
-            if ('serviceWorker' in navigator && 'PushManager' in window) {
-                navigator.serviceWorker.register('sw.js')
-                    .then(swReg => {
-                        console.log('Service Worker is registered', swReg);
-                        // Request notification permission on first visit
-                        requestNotificationPermission();
-                        // Notify user that the app has started
-                        sendNotification('DocuMagic is running!', 'Ready to convert your documents.', 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
-                    })
-                    .catch(error => {
-                        console.error('Service Worker Error', error);
-                    });
-            }
-
-            function requestNotificationPermission() {
-                Notification.requestPermission(status => {
-                    console.log('Notification permission status:', status);
-                });
-            }
-
-            function sendNotification(title, body, imageUrl) {
-                if (Notification.permission === 'granted') {
-                    navigator.serviceWorker.ready.then(registration => {
-                        const options = {
-                            body: body,
-                            icon: 'icon-192.png', // Small icon for the notification
-                            badge: 'notification-badge.png', // Monochrome icon for status bar on mobile
-                            vibrate: [200, 100, 200],
-                            image: imageUrl // The large image to display in the notification
-                        };
-                        registration.showNotification(title, options);
-                    });
-                }
-            }
             
             // --- General UI Logic: Tab Switching ---
             const tabs = document.querySelectorAll('.tab-button');
@@ -449,6 +408,7 @@
                     target.classList.add('active');
                 });
             });
+
 
             // --- Feature 1: PDF to Image ---
             const p2iDropZone = document.getElementById('p2i-drop-zone');
@@ -486,6 +446,7 @@
                     return;
                 }
                 
+                // Reset UI
                 p2iResultsArea.innerHTML = '<div class="results-grid"></div>';
                 p2iActionArea.innerHTML = '';
                 p2iActionArea.style.display = 'none';
@@ -506,7 +467,7 @@
 
                     for (let i = 1; i <= numPages; i++) {
                         const page = await pdfDoc.getPage(i);
-                        const viewport = page.getViewport({ scale: 2.0 });
+                        const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better quality
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
@@ -515,14 +476,16 @@
                         await page.render({ canvasContext: context, viewport: viewport }).promise;
 
                         const imgDataUrl = canvas.toDataURL('image/png');
+                        const fileName = `page_${i}.png`;
                         
                         const resultItem = document.createElement('div');
                         resultItem.className = 'result-item';
+                        // --- MODIFIED --- Store data in data attributes for the bridge
                         resultItem.innerHTML = `
                             <img src="${imgDataUrl}" alt="Page ${i}">
-                            <div class="download-overlay">
+                            <div class="download-overlay" data-url="${imgDataUrl}" data-filename="${fileName}">
                                 <span>Page ${i}</span>
-                                <a href="${imgDataUrl}" download="page_${i}.png" class="download-link">Download</a>
+                                <span class="download-text">Download</span>
                             </div>
                             <div class="selection-controls">
                                 <input type="checkbox" class="select-checkbox p2i-select-item">
@@ -550,6 +513,20 @@
                     }
                 };
             }
+            
+            // --- MODIFIED --- Add click listener for single image downloads
+            p2iResultsArea.addEventListener('click', e => {
+                if (e.target.classList.contains('download-overlay')) {
+                    const dataUrl = e.target.dataset.url;
+                    const fileName = e.target.dataset.filename;
+                    if (window.AndroidBridge) {
+                        window.AndroidBridge.saveDataAsFile(dataUrl, fileName);
+                    } else {
+                        alert('Download bridge not available.');
+                    }
+                }
+            });
+
 
             p2iResultsArea.addEventListener('change', e => {
                 if (e.target.classList.contains('p2i-select-item')) {
@@ -581,21 +558,13 @@
                 checkedItems.forEach((checkbox, index) => {
                     const resultItem = checkbox.closest('.result-item');
                     if (resultItem) {
-                        const downloadLink = resultItem.querySelector('.download-link');
-                        if (downloadLink) {
-                            const tempLink = document.createElement('a');
-                            tempLink.href = downloadLink.href;
-                            tempLink.download = downloadLink.download;
-                            
-                            setTimeout(() => {
-                                document.body.appendChild(tempLink);
-                                tempLink.click();
-                                document.body.removeChild(tempLink);
-                            }, index * 250);
+                        const overlay = resultItem.querySelector('.download-overlay');
+                        if (overlay && window.AndroidBridge) {
+                            // --- MODIFIED --- Call the Android bridge instead of clicking a link
+                            window.AndroidBridge.saveDataAsFile(overlay.dataset.url, overlay.dataset.filename);
                         }
                     }
                 });
-                sendNotification('Download Complete!', `${checkedItems.length} images have been saved.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
             }
 
             // --- Feature 2: Image to PDF ---
@@ -707,9 +676,17 @@
                     if (!finalFileName.toLowerCase().endsWith('.pdf')) {
                         finalFileName += '.pdf';
                     }
-                    doc.save(finalFileName);
-                    i2pStatusText.textContent = 'PDF created successfully!';
-                    sendNotification('Conversion Complete!', `Your PDF "${finalFileName}" has been created.`, 'https://drive.google.com/uc?export=view&id=1aHGEr2Ptwin2nzpH9VrtzRZfM0GLSDT9');
+
+                    // --- MODIFIED --- Call the Android Bridge instead of doc.save()
+                    if (window.AndroidBridge) {
+                        const pdfDataUri = doc.output('datauristring');
+                        window.AndroidBridge.saveDataAsFile(pdfDataUri, finalFileName);
+                        i2pStatusText.textContent = 'PDF created successfully!';
+                    } else {
+                        // Fallback for testing in a regular browser
+                        doc.save(finalFileName);
+                    }
+                    
                 } else {
                     i2pStatusText.textContent = 'Save cancelled.';
                 }
