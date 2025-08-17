@@ -520,9 +520,15 @@
                     const dataUrl = e.target.dataset.url;
                     const fileName = e.target.dataset.filename;
                     if (window.AndroidBridge) {
-                        window.AndroidBridge.saveDataAsFile(dataUrl, fileName);
-                    } else {
-                        alert('Download bridge not available.');
+    window.AndroidBridge.saveDataAsFile(dataUrl, fileName);
+} else {
+    // For browsers: trigger file download
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
                     }
                 }
             });
